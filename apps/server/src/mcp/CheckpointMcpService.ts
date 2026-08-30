@@ -74,6 +74,20 @@ const isCheckpointMcpFailure = Schema.is(CheckpointMcpFailure);
 const isOrchestratorProjectionError = Schema.is(OrchestratorProjectionError);
 const isProjectionStoreThreadNotFoundError = Schema.is(ProjectionStoreThreadNotFoundError);
 
+function restoreEffectDetail(input: {
+  readonly status: "pending" | "running" | "succeeded" | "failed" | "cancelled";
+  readonly failureCode?: "checkpoint_restore_rejected" | "checkpoint_restore_partial";
+}): string | null {
+  if (input.status !== "failed" && input.status !== "cancelled") return null;
+  if (input.failureCode === "checkpoint_restore_partial") {
+    return "The restore may have changed filesystem or provider state. Inspect the current thread and workspace before retrying.";
+  }
+  if (input.failureCode === "checkpoint_restore_rejected") {
+    return "The restore was rejected before a verified filesystem change.";
+  }
+  return "The restore did not complete. Inspect the current thread and workspace before retrying.";
+}
+
 function providerTurnForRun(projection: OrchestrationV2ThreadProjection, runOrdinal: number) {
   const run = projection.runs.find((candidate) => candidate.ordinal === runOrdinal);
   if (run?.activeAttemptId === null || run === undefined) return undefined;
@@ -327,7 +341,7 @@ export const make = Effect.gen(function* () {
         sequence: receipt.resultSequence,
       },
       effectStatus: rollbackEffect.status,
-      detail: rollbackEffect.lastError,
+      detail: restoreEffectDetail(rollbackEffect),
     });
   });
 
