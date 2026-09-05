@@ -210,32 +210,33 @@ function makeHarness(
     input.readWorkspaceFingerprint ?? (() => Effect.succeed("tree:checkpoint-mcp")),
   );
   let acceptedCommandId: CommandId | undefined;
-  const dispatch = vi.fn((command: Parameters<ThreadManagementService["Service"]["dispatch"]>[0]) =>
-    command.type !== "checkpoint.rollback"
-      ? Effect.die("Checkpoint MCP test only dispatches checkpoint.rollback")
-      : Effect.sync(() => {
-          acceptedCommandId = command.commandId;
-          return {
-            sequence: 7,
-            storedEvents: [
-              {
-                sequence: 7,
-                commandId: command.commandId,
-                event: {
-                  id: EventId.make(`event:${command.commandId}`),
-                  type: "checkpoint.rollback-requested" as const,
-                  threadId: command.threadId,
-                  occurredAt: now,
-                  payload: {
-                    scopeId: command.scopeId,
-                    checkpointId: command.checkpointId,
-                    requestedAt: now,
+  const dispatch = vi.fn(
+    (command: Parameters<ThreadManagementService["Service"]["dispatch"]>[0]) =>
+      command.type !== "checkpoint.rollback"
+        ? Effect.die("Checkpoint MCP test only dispatches checkpoint.rollback")
+        : Effect.sync(() => {
+            acceptedCommandId = command.commandId;
+            return {
+              sequence: 7,
+              storedEvents: [
+                {
+                  sequence: 7,
+                  commandId: command.commandId,
+                  event: {
+                    id: EventId.make(`event:${command.commandId}`),
+                    type: "checkpoint.rollback-requested" as const,
+                    threadId: command.threadId,
+                    occurredAt: now,
+                    payload: {
+                      scopeId: command.scopeId,
+                      checkpointId: command.checkpointId,
+                      requestedAt: now,
+                    },
                   },
                 },
-              },
-            ],
-          };
-        }),
+              ],
+            };
+          }),
   );
   const serviceLayer = layer.pipe(
     Layer.provide(
