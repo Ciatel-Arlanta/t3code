@@ -42,7 +42,7 @@ export const ClaudeExecutableFileCheck = Context.Reference<ExecutableFileCheck>(
   },
 );
 
-export type ExecutableFileRead = (filePath: string) => string | undefined;
+type ExecutableFileRead = (filePath: string) => string | undefined;
 
 function readFileOrUndefined(filePath: string): string | undefined {
   try {
@@ -82,7 +82,6 @@ export const resolveClaudeSdkExecutablePath = Effect.fn("resolveClaudeSdkExecuta
 
     const resolveExecutable = yield* SpawnExecutableResolution;
     const isFile = yield* ClaudeExecutableFileCheck;
-    const readFile = yield* ClaudeExecutableFileRead;
     const resolved = resolveExecutable(binaryPath, platform, environment) ?? binaryPath;
     const extension = NodePath.win32.extname(resolved).toLowerCase();
     if (!WINDOWS_SHIM_EXTENSIONS.has(extension)) {
@@ -96,7 +95,7 @@ export const resolveClaudeSdkExecutablePath = Effect.fn("resolveClaudeSdkExecuta
         return candidate;
       }
     }
-    const pnpmExecutable = pnpmShimClaudeExecutable(resolved, readFile);
+    const pnpmExecutable = pnpmShimClaudeExecutable(resolved, yield* ClaudeExecutableFileRead);
     if (pnpmExecutable !== undefined && isFile(pnpmExecutable)) {
       return pnpmExecutable;
     }

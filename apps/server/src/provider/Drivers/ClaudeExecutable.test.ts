@@ -123,6 +123,26 @@ describe("resolveClaudeSdkExecutablePath", () => {
     }),
   );
 
+  it.effect("keeps the fallback for missing targets and modified pnpm shims", () =>
+    Effect.gen(function* () {
+      const shim = pnpmShim("@anthropic-ai\\claude-code\\bin\\claude.exe");
+      for (const input of [
+        { fileContents: { [PNPM_SHIM]: shim } },
+        { existingFiles: [PNPM_PACKAGE_EXE] },
+        {
+          existingFiles: [PNPM_PACKAGE_EXE],
+          fileContents: { [PNPM_SHIM]: shim + "echo extra\r\n" },
+        },
+      ]) {
+        expect(
+          yield* resolveClaudeSdkExecutablePath("claude", {}).pipe(
+            withWindowsResolution({ resolvedCommand: PNPM_SHIM, ...input }),
+          ),
+        ).toBe("claude");
+      }
+    }),
+  );
+
   it.effect("returns the configured path when a shim has no known package entry", () =>
     Effect.gen(function* () {
       expect(
